@@ -54,4 +54,5 @@ Thumbs.db
 .turbo/
 .wrangler/
 openspec/
-notes
+notes/.obsidian/
+notes/*.zip
