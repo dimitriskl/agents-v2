@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reference: Single-Turn Evals Map</title>
+    <link rel="stylesheet" href="../assets/lesson.css" />
+  </head>
+  <body>
+    <main class="reference-shell">
+      <p class="lesson-kicker">Reference 0001</p>
+      <h1>Single-Turn Evals Map</h1>
+      <p class="lede">
+        A compressed map for the evals section of the course: dataset entry in,
+        executor output out, evaluator turns that output into a score.
+      </p>
+
+      <nav class="reference-nav" aria-label="Reference links">
+        <a href="../lessons/0001-score-single-turn-tool-calls.html">Lesson 0001</a>
+        <a href="../evals/types.ts">evals/types.ts</a>
+        <a href="../evals/evaluators.ts">evals/evaluators.ts</a>
+        <a href="../notes/Evals/Evals5.md">Transcript: scorers</a>
+      </nav>
+
+      <h2>The Pipeline</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Piece</th>
+            <th>Shape in this repo</th>
+            <th>Job</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Dataset entry</td>
+            <td><code>{ data, target, metadata }</code></td>
+            <td>One exam question plus its answer key.</td>
+          </tr>
+          <tr>
+            <td>Data</td>
+            <td><code>EvalData</code></td>
+            <td>What the model sees: prompt, available tools, optional config.</td>
+          </tr>
+          <tr>
+            <td>Target</td>
+            <td><code>EvalTarget</code></td>
+            <td>What the evaluator sees: expected tools, forbidden tools, category.</td>
+          </tr>
+          <tr>
+            <td>Executor</td>
+            <td><code>singleTurnExecutor(data)</code></td>
+            <td>Runs one model call and returns normalized tool-call output.</td>
+          </tr>
+          <tr>
+            <td>Evaluator</td>
+            <td><code>(output, target) =&gt; number</code></td>
+            <td>Turns qualitative behavior into a quantitative score from 0 to 1.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Category Rules</h2>
+      <div class="score-grid">
+        <section class="score-cell">
+          <strong>Golden</strong>
+          <span>Strict. A clear prompt should select exactly the intended tool behavior.</span>
+        </section>
+        <section class="score-cell">
+          <strong>Secondary</strong>
+          <span>Flexible. Useful to measure, but usually not punished as harshly.</span>
+        </section>
+        <section class="score-cell">
+          <strong>Negative</strong>
+          <span>Guardrail. The agent should avoid tools that are outside the task.</span>
+        </section>
+      </div>
+
+      <h2>Scorer Cheatsheet</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Scorer</th>
+            <th>Use when</th>
+            <th>Return rule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>toolsSelected</code></td>
+            <td>You need a strict pass/fail check for expected tools.</td>
+            <td><code>1</code> if all expected tools were selected, else <code>0</code>.</td>
+          </tr>
+          <tr>
+            <td><code>toolsAvoided</code></td>
+            <td>You need a strict negative check.</td>
+            <td><code>0</code> if any forbidden tool was selected, else <code>1</code>.</td>
+          </tr>
+          <tr>
+            <td><code>toolSelectionScore</code></td>
+            <td>You want partial credit for secondary or ambiguous prompts.</td>
+            <td>Use precision and recall to return an F1-like score.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="tiny">
+        Primary source for this reference:
+        <a href="../notes/Evals/Evals5.md">local course transcript on deterministic scoring</a>.
+      </p>
+    </main>
+  </body>
+</html>

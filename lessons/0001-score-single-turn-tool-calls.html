@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lesson 0001: Score Single-Turn Tool Calls</title>
+    <link rel="stylesheet" href="../assets/lesson.css" />
+  </head>
+  <body>
+    <main class="lesson-shell">
+      <p class="lesson-kicker">Lesson 0001</p>
+      <h1>Score Single-Turn Tool Calls</h1>
+      <p class="lede">
+        Your next eval skill is to look at a model's selected tools and turn that
+        behavior into a number. This is the bridge from "it seemed right" to an
+        eval score you can compare across runs.
+      </p>
+
+      <nav class="top-nav" aria-label="Lesson links">
+        <a href="../reference/0001-evals-map.html">Reference: evals map</a>
+        <a href="../evals/evaluators.ts">Open evaluator code</a>
+        <a href="../evals/data/file-tools.json">Open file tools data</a>
+        <a href="../notes/Evals/Evals5.md">Primary transcript</a>
+      </nav>
+
+      <section class="callout">
+        <h2>The One Idea</h2>
+        <p>
+          Single-turn tool-selection evals can be deterministic because tool
+          calls are structured objects. You are not scoring prose yet. You are
+          scoring arrays like <code>["readFile"]</code> against answer keys like
+          <code>expectedTools: ["readFile"]</code>.
+        </p>
+        <p>
+          The course transcript calls evaluators "the thing that turns the
+          qualitative thing to a quantitative thing." In this repo, that means a
+          function shaped like <code>(output, target) =&gt; number</code>.
+        </p>
+      </section>
+
+      <section>
+        <h2>Three Moving Pieces</h2>
+        <div class="term-grid">
+          <article class="term">
+            <strong>Dataset</strong>
+            <span>
+              The exam sheet. <code>data</code> is the question, <code>target</code>
+              is the answer key.
+            </span>
+          </article>
+          <article class="term">
+            <strong>Executor</strong>
+            <span>
+              The runner. It shows <code>data</code> to the model and returns
+              normalized output.
+            </span>
+          </article>
+          <article class="term">
+            <strong>Evaluator</strong>
+            <span>
+              The scorer. It compares <code>output</code> with <code>target</code>
+              and returns <code>0</code> to <code>1</code>.
+            </span>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="quiz"
+        data-quiz
+        data-answer="structured"
+        data-correct="Correct. Tool calls are JSON-like objects, so ordinary code can compare them."
+        data-incorrect="Not quite. This lesson is about single-turn tool calls, not final prose answers."
+      >
+        <h2>Retrieval Check</h2>
+        <p>Why can this single-turn evaluator be deterministic?</p>
+        <div class="quiz-options">
+          <button data-choice="structured" type="button">Structured tool calls</button>
+          <button data-choice="natural" type="button">Natural prose text</button>
+          <button data-choice="randomized" type="button">Randomized model seed</button>
+        </div>
+        <p class="feedback" data-feedback aria-live="polite"></p>
+      </section>
+
+      <section class="practice">
+        <h2>Predict Before Coding</h2>
+        <p>
+          Imagine this eval output and target:
+        </p>
+        <pre><code>output.toolNames = ["readFile"];
+target.expectedTools = ["readFile"];
+target.category = "golden";</code></pre>
+        <p>
+          A strict <code>toolsSelected</code> scorer should return:
+        </p>
+        <div
+          class="inline-quiz"
+          data-quiz
+          data-answer="one"
+          data-correct="Correct. The expected tool appears in the selected tool names."
+          data-incorrect="Not quite. For a strict golden check, this is a full match."
+        >
+          <div class="quiz-options">
+            <button data-choice="zero" type="button">0.0</button>
+            <button data-choice="half" type="button">0.5</button>
+            <button data-choice="one" type="button">1.0</button>
+          </div>
+          <p class="feedback" data-feedback aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="practice">
+        <h2>Now Flip It</h2>
+        <p>
+          For negative examples, the target says which tools are forbidden. If
+          the model selects any forbidden tool, the score should be zero.
+        </p>
+        <pre><code>output.toolNames = ["listFiles"];
+target.forbiddenTools = ["readFile", "writeFile", "listFiles", "deleteFile"];
+target.category = "negative";</code></pre>
+        <div
+          class="inline-quiz"
+          data-quiz
+          data-answer="zero"
+          data-correct="Correct. The selected tool is forbidden, so the negative eval fails."
+          data-incorrect="Not quite. A negative eval fails if even one forbidden tool is selected."
+        >
+          <div class="quiz-options">
+            <button data-choice="zero" type="button">0.0</button>
+            <button data-choice="half" type="button">0.5</button>
+            <button data-choice="one" type="button">1.0</button>
+          </div>
+          <p class="feedback" data-feedback aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="checkpoint">
+        <h2>Your Next Code Move</h2>
+        <p>
+          In <a href="../evals/evaluators.ts"><code>evals/evaluators.ts</code></a>,
+          write one small evaluator before touching Laminar wiring:
+        </p>
+        <pre><code>export function toolsAvoided(
+  output: SingleTurnResult,
+  target: EvalTarget,
+): number {
+  // Return 0 if any forbidden tool was selected.
+  // Return 1 otherwise.
+}</code></pre>
+        <p>
+          Do not look for the model call here. This function should only inspect
+          <code>output.toolNames</code> and <code>target.forbiddenTools</code>.
+        </p>
+        <a class="next-action" href="../evals/evaluators.ts">Open the file</a>
+      </section>
+
+      <section>
+        <h2>Primary Source</h2>
+        <p>
+          Read or re-read the local course transcript section:
+          <a href="../notes/Evals/Evals5.md">Deterministic tool-selection scoring</a>.
+          The wider course page is
+          <a href="https://frontendmasters.com/courses/ai-agents-v2/">Frontend Masters AI Agents V2</a>.
+        </p>
+        <p class="tiny">
+          Ask the agent to check your implementation after you write it. A good
+          next prompt is: "I wrote <code>toolsAvoided</code>; run or inspect it
+          with me and explain the result."
+        </p>
+      </section>
+    </main>
+    <script src="../assets/quiz.js"></script>
+  </body>
+</html>
