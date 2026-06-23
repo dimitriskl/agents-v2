@@ -1,12 +1,6 @@
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-
 import type {
   EvalTarget,
   SingleTurnResult,
-  MultiTurnTarget,
-  MultiTurnResult,
 } from "./types.ts";
 
 /**
@@ -32,6 +26,30 @@ export function toolSelectionScore(
   // Simple F1-ish score
   if (precision + recall === 0) return 0;
   return (2 * precision * recall) / (precision + recall);
+}
+
+export function toolsAvoided(
+  output: SingleTurnResult,
+target: EvalTarget,
+): number{
+   if(output.toolNames.some((t)=>target.forbiddenTools?.includes(t)))
+    {
+    return 0;
+    }
+  else {
+    return 1;
+  }
+}
+
+export function toolsSelected(
+  output: SingleTurnResult,
+  target: EvalTarget,
+) : number{
+  if (!target.expectedTools?.length) return 1;
+
+  const selected = new Set(output.toolNames);
+
+  return target.expectedTools.every((t) => selected.has(t)) ? 1 : 0;
 }
 
 

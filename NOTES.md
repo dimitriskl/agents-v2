@@ -5,3 +5,5 @@
 - Transcripts live under `notes/`, especially `notes/Evals/`.
 - Follow the session style from `notes/Evals/session-resume.md`: explain one small concept, ask the user to predict or reason, let the user write the next small piece, run/check it, then explain the result.
 - Do not implement full eval files for the user unless they explicitly change the teaching mode.
+- For evals, follow the course order: create the pieces first, test them locally without Laminar, then add Laminar after the executor and scorers are understood.
+- User wants a score after exercises, with weak sides tracked in docs.

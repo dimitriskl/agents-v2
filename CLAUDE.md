@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 
@@ -16,6 +20,61 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+# Working in This Repo
+
+This is the source for a course that builds a terminal AI agent from scratch (TypeScript + Vercel AI SDK + Ink). The `done` branch holds the complete app; `main` and the `NN-lesson` branches are progressively stripped-down versions (see Course Development Workflow below). Because of this, **what exists on disk varies by branch** — some files (e.g. `src/agent/run.ts`, `evals/executors.ts`) may contain teaching scaffolding such as top-level invocation/`console.log` calls rather than finished module exports. Read the actual file before assuming behavior.
+
+## Commands
+
+```bash
+# Run the agent (interactive Ink TUI)
+npm run dev        # tsx watch, auto-restart, loads .env
+npm start          # run once via tsx
+
+# Build & global install
+npm run build      # tsc -p tsconfig.build.json -> dist/
+npm install -g .   # exposes the `agi` CLI (bin -> dist/cli.js)
+
+# Evals (LMNR / Laminar — this project's "tests")
+npm run eval               # run all evals (npx lmnr eval)
+npm run eval:file-tools    # single eval file
+npm run eval:shell-tools
+npm run eval:agent
+npx lmnr eval evals/<name>.eval.ts   # run any one eval file directly
+
+# Lint / format (Biome — tabs, double quotes; no npm script)
+npx biome check .
+npx biome format --write .
+```
+
+There is no unit-test runner; correctness is validated through the LMNR evals. Both running and evals require `.env` with `OPENAI_API_KEY` and `LMNR_PROJECT_API_KEY`.
+
+## Conventions
+
+- **ESM only**, and `moduleResolution: bundler` with `allowImportingTsExtensions` — relative imports include the explicit extension (`./system/prompt.ts`, `./ui/index.tsx`). Match this when adding imports.
+- TypeScript strict mode; `tsconfig.json` is `noEmit` (for tsx/typecheck), `tsconfig.build.json` is what actually emits `dist/`.
+- Model is `gpt-5-mini` via `@ai-sdk/openai`, referenced as a string literal in `run.ts` and `evals/executors.ts`.
+
+## Architecture
+
+Two thin entry points — `src/index.ts` (dev) and `src/cli.ts` (shebang, packaged as the `agi` bin) — both just `render(<App />)`. All real logic is in `src/agent/` and `src/ui/`.
+
+**UI (`src/ui/`)** — Ink (React in the terminal). `App.tsx` owns all state (messages, conversation history, streaming text, active tool calls, pending approval, token usage) and is the only place that calls the agent. It wires `runAgent` to a set of callbacks defined as `AgentCallbacks` in `src/types.ts`: `onToken`, `onToolCallStart`/`onToolCallEnd`, `onComplete`, `onToolApproval` (HITL — returns `Promise<boolean>` the UI resolves when the user accepts/rejects), and `onTokenUsage`. Components live in `src/ui/components/` (MessageList, ToolCall, ToolApproval, TokenUsage, Input, Spinner).
+
+**Agent core (`src/agent/`)**
+- `run.ts` — `runAgent(userMessage, conversationHistory, callbacks)`: the manual tool-calling loop. Calls the model, streams tokens, executes any tool calls, appends results to history, repeats until the model stops requesting tools, then returns the updated `ModelMessage[]` history (which `App.tsx` stores for the next turn).
+- `tools/` — each tool is its own file (e.g. `dateTime.ts`) defined with the AI SDK `tool()` helper + Zod `inputSchema`. `tools/index.ts` aggregates them into a single `tools` object; `ToolName` is `keyof typeof tools`.
+- `executeTools.ts` — dispatcher: looks up a tool by name in `tools` and runs its `execute`, returning a string (handles unknown / non-executable tools).
+- `context/` — context-window management, exposed via a barrel `index.ts`: `tokenEstimator.ts` (token counting), `modelLimits.ts` (per-model limits + threshold helpers), `compaction.ts` (`compactConversation` summarizes history when over threshold).
+- `system/` — `prompt.ts` (the `SYSTEM_PROMPT`) and `filterMessages.ts`.
+
+**Evals (`evals/`)** — LMNR framework; `*.eval.ts` files are the entry points.
+- `types.ts` — the eval contracts. Single-turn (`EvalData`/`EvalTarget`/`SingleTurnResult`) tests *tool selection without execution*; multi-turn (`MultiTurnEvalData`/`MultiTurnTarget`/`MultiTurnResult`) runs the full agent loop against mocked tools. Targets are categorized `golden` / `secondary` / `negative` (and `task-completion` / `conversation-continuation` / `negative` for multi-turn).
+- `executors.ts` — run the model and return the structured result objects above.
+- `evaluators.ts` — scoring functions: `toolSelectionScore` (precision/recall F1), `toolsSelected` (strict — all expected tools present), `toolsAvoided` (0 if any forbidden tool used).
+- `utils.ts` — `buildMockedTools` (turns `mockTools` config into a Zod-schema `ToolSet` returning fixed values) and `buildMessages` (prepends `SYSTEM_PROMPT`).
+- `data/*.json` — datasets; `mocks/tools.ts` — shared mock tools.
 
 # Course Development Workflow
 

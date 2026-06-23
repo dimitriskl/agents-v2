@@ -39,10 +39,4 @@ args: tc.input,
   }
 }
 
-const output =await singleTurnExecutor({
-  prompt: "read the contents of package.json",
-  tools: ["readFile"],
-});
-
-console.log(output);
 
